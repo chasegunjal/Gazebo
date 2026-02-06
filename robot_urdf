@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="R2_V3_Assembly">
+  
+  <link name="base_link">
+    <inertial>
+      <origin xyz="-0.0070142 0.40653 -0.033544" rpy="0 0 0" />
+      <mass value="12.092" />
+      <inertia
+        ixx="0.11827"
+        ixy="5.2038E-06"
+        ixz="0.0043428"
+        iyy="0.16973"
+        iyz="0.0005168"
+        izz="0.16323" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/base_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.86667 0.9098 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Ultrasonic Sensor Link -->
+  <link name="ultrasonic_sensor_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.03 0.01"/>
+      </geometry>
+      <material name="sensor_blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.03 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Joint connecting ultrasonic sensor to base_link -->
+  <joint name="ultrasonic_sensor_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="ultrasonic_sensor_link"/>
+    <origin xyz="0.25 0 0.26" rpy="0 -1.5708 0"/>  <!-- Rotated -90° -->
+  </joint>
+
+  <!-- Gazebo-specific sensor configuration -->
+  <gazebo reference="ultrasonic_sensor_link">
+    <sensor name="ultrasonic_front" type="gpu_ray">
+      <pose>0 0 0 0 0 0</pose>
+      <always_on>1</always_on>
+      <update_rate>10</update_rate>
+      <visualize>true</visualize>
+      <topic>ultrasonic_front</topic>
+      
+      <ray>
+        <scan>
+          <horizontal>
+            <!-- CHANGE: Single ray like HC-SR04 -->
+            <samples>1</samples>  <!-- Was 5, now 1 -->
+            <resolution>1</resolution>
+            <min_angle>0.0</min_angle>  <!-- Was -0.26 -->
+            <max_angle>0.0</max_angle>  <!-- Was 0.26 -->
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.02</min>  <!-- HC-SR04 minimum: 2cm -->
+          <max>4.0</max>   <!-- HC-SR04 maximum: 4m -->
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.003</stddev>  <!-- Small noise like real HC-SR04 -->
+        </noise>
+      </ray>
+    </sensor>
+  </gazebo>
+
+  <!-- Rest of your robot links and joints... -->
+  <link name="StepClimbing_Middle">
+    <inertial>
+      <origin xyz="-8.7271E-07 -0.015136 0.00042259" rpy="0 0 0" />
+      <mass value="0.95229" />
+      <inertia
+        ixx="0.0015569"
+        ixy="1.837E-10"
+        ixz="-2.671E-09"
+        iyy="0.0023445"
+        iyz="-5.1393E-08"
+        izz="0.0034224" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/StepClimbing_Middle.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.86667 0.9098 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/StepClimbing_Middle.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="sliding_M" type="prismatic">
+    <origin xyz="-0.0005 0 -0.070089" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="StepClimbing_Middle" />
+    <axis xyz="0 1 0" />
+    <limit lower="-2.0" upper="2.0" effort="100" velocity="10" />
+  </joint>
+
+  <link name="Wheel_ML">
+    <inertial>
+      <origin xyz="0 6.9389E-18 -2.2204E-16" rpy="0 0 0" />
+      <mass value="0.18024" />
+      <inertia
+        ixx="0.00013229"
+        ixy="-9.2015E-10"
+        ixz="1.0037E-10"
+        iyy="8.8499E-05"
+        iyz="-2.5381E-09"
+        izz="8.8476E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_ML.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.29804 0.29804 0.29804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_ML.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="Middle_Wheel_L" type="continuous">
+    <origin xyz="0.2035 -0.03 0.0005" rpy="0 0 0" />
+    <parent link="StepClimbing_Middle" />
+    <child link="Wheel_ML" />
+    <axis xyz="1 0 0" />
+  </joint>
+
+  <link name="Wheel_MR">
+    <inertial>
+      <origin xyz="0 6.9389E-18 -2.2204E-16" rpy="0 0 0" />
+      <mass value="0.18024" />
+      <inertia
+        ixx="0.00013229"
+        ixy="-9.2181E-10"
+        ixz="8.3695E-11"
+        iyy="8.8499E-05"
+        iyz="-2.1203E-09"
+        izz="8.8475E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_MR.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.29804 0.29804 0.29804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_MR.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="Middle_Wheel_R" type="continuous">
+    <origin xyz="-0.2035 -0.03 0.0005" rpy="0 0 0" />
+    <parent link="StepClimbing_Middle" />
+    <child link="Wheel_MR" />
+    <axis xyz="1 0 0" />
+  </joint>
+
+  <link name="Wheel_FL">
+    <inertial>
+      <origin xyz="0 6.9389E-18 0" rpy="0 0 0" />
+      <mass value="0.18024" />
+      <inertia
+        ixx="0.00013229"
+        ixy="-8.9062E-10"
+        ixz="-2.5206E-10"
+        iyy="8.8497E-05"
+        iyz="6.1673E-09"
+        izz="8.8477E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_FL.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.29804 0.29804 0.29804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_FL.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="Front_Wheel_L" type="continuous">
+    <origin xyz="0.203 -0.03 0.1661" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="Wheel_FL" />
+    <axis xyz="1 0 0" />
+  </joint>
+
+  <link name="Wheel_FR">
+    <inertial>
+      <origin xyz="0 0 -2.2204E-16" rpy="0 0 0" />
+      <mass value="0.18024" />
+      <inertia
+        ixx="0.00013229"
+        ixy="-1.3657E-10"
+        ixz="-9.1547E-10"
+        iyy="8.8476E-05"
+        iyz="3.4357E-09"
+        izz="8.8498E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_FR.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.29804 0.29804 0.29804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_FR.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="Fornt_Wheel_R" type="continuous">
+    <origin xyz="-0.204 -0.03 0.1661" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="Wheel_FR" />
+    <axis xyz="1 0 0" />
+  </joint>
+
+  <link name="StepClimbing_Back">
+    <inertial>
+      <origin xyz="-8.7426E-07 -0.015136 0.00042259" rpy="0 0 0" />
+      <mass value="0.95229" />
+      <inertia
+        ixx="0.0015569"
+        ixy="5.7381E-11"
+        ixz="-2.6718E-09"
+        iyy="0.0023445"
+        iyz="-5.1579E-08"
+        izz="0.0034224" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/StepClimbing_Back.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.86667 0.9098 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/StepClimbing_Back.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="Sliding_B" type="prismatic">
+    <origin xyz="-0.0005 0 -0.2864" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="StepClimbing_Back" />
+    <axis xyz="0 1 0" />
+    <limit lower="-2.0" upper="0" effort="100" velocity="10" />
+  </joint>
+
+  <link name="Wheel_BL">
+    <inertial>
+      <origin xyz="0 6.9389E-18 -2.2204E-16" rpy="0 0 0" />
+      <mass value="0.18024" />
+      <inertia
+        ixx="0.00013229"
+        ixy="-9.2015E-10"
+        ixz="1.0037E-10"
+        iyy="8.8499E-05"
+        iyz="-2.5381E-09"
+        izz="8.8476E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_BL.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.29804 0.29804 0.29804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_BL.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="Back_Wheel_L" type="continuous">
+    <origin xyz="0.2035 -0.03 0.0005" rpy="0 0 0" />
+    <parent link="StepClimbing_Back" />
+    <child link="Wheel_BL" />
+    <axis xyz="1 0 0" />
+  </joint>
+
+  <link name="Wheel_BR">
+    <inertial>
+      <origin xyz="0 6.9389E-18 -2.2204E-16" rpy="0 0 0" />
+      <mass value="0.18024" />
+      <inertia
+        ixx="0.00013229"
+        ixy="-9.2181E-10"
+        ixz="8.3695E-11"
+        iyy="8.8499E-05"
+        iyz="-2.1203E-09"
+        izz="8.8475E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_BR.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.29804 0.29804 0.29804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://robot2_description/meshes/Wheel_BR.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="Back_Wheel_R" type="continuous">
+    <origin xyz="-0.2035 -0.03 0.0005" rpy="0 0 0" />
+    <parent link="StepClimbing_Back" />
+    <child link="Wheel_BR" />
+    <axis xyz="1 0 0" />
+  </joint>
+
+  <!-- Wheel friction for Gazebo -->
+  <gazebo reference="Wheel_FL">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="Wheel_FR">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="Wheel_ML">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="Wheel_MR">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="Wheel_BL">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="Wheel_BR">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <!-- ROS2 Control -->
+  <ros2_control name="GazeboSystem" type="system">
+    <hardware>
+      <plugin>ign_ros2_control/IgnitionSystem</plugin>
+    </hardware>
+
+    <joint name="Front_Wheel_L">
+      <command_interface name="velocity"/>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="Fornt_Wheel_R">
+      <command_interface name="velocity"/>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="Middle_Wheel_L">
+      <command_interface name="velocity"/>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="Middle_Wheel_R">
+      <command_interface name="velocity"/>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="Back_Wheel_L">
+      <command_interface name="velocity"/>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="Back_Wheel_R">
+      <command_interface name="velocity"/>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="sliding_M">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="Sliding_B">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+    </joint>
+    
+    <!-- Prismatic joints (position control) -->
+    <joint name="sliding_M">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="Sliding_B">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+  </ros2_control>
+  <!-- Simple Differential Drive Plugin -->
+  <gazebo>
+    <plugin
+      filename="libignition-gazebo-diff-drive-system.so"
+      name="ignition::gazebo::systems::DiffDrive">
+      
+      <!-- Wheel joints -->
+      <left_joint>Front_Wheel_L</left_joint>
+      <left_joint>Middle_Wheel_L</left_joint>
+      <left_joint>Back_Wheel_L</left_joint>
+      
+      <right_joint>Fornt_Wheel_R</right_joint>
+      <right_joint>Middle_Wheel_R</right_joint>
+      <right_joint>Back_Wheel_R</right_joint>
+      
+      <!-- Kinematics -->
+      <wheel_separation>0.407</wheel_separation>
+      <wheel_radius>0.05</wheel_radius>
+      
+      <!-- Topic -->
+      <topic>cmd_vel</topic>
+      
+      <!-- Frames -->
+      <odom_publish_frequency>50</odom_publish_frequency>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+      
+    </plugin>
+  </gazebo>
+
+<!-- Joint Position Controller for Middle Joint -->
+  <gazebo>
+    <plugin
+      filename="libignition-gazebo6-joint-position-controller-system.so"
+      name="ignition::gazebo::systems::JointPositionController">
+      <joint_name>sliding_M</joint_name>
+      <topic>sliding_M_cmd</topic>
+      <p_gain>100</p_gain>
+      <i_gain>1</i_gain>
+      <d_gain>10</d_gain>
+    </plugin>
+  </gazebo>
+
+  <!-- Joint Position Controller for Back Joint -->
+  <gazebo>
+    <plugin
+      filename="libignition-gazebo6-joint-position-controller-system.so"
+      name="ignition::gazebo::systems::JointPositionController">
+      <joint_name>Sliding_B</joint_name>
+      <topic>Sliding_B_cmd</topic>
+      <p_gain>100</p_gain>
+      <i_gain>1</i_gain>
+      <d_gain>10</d_gain>
+    </plugin>
+  </gazebo>
+  
+</robot>

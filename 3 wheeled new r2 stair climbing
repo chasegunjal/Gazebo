@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Float64
+import time
+
+
+class StairClimber(Node):
+    def __init__(self):
+        super().__init__('stair_climber')
+
+        # Subscribers
+        self.sensor_sub = self.create_subscription(
+            LaserScan, '/ultrasonic_front', self.sensor_callback, 10
+        )
+
+        # Publishers
+        self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.front_joint_pub = self.create_publisher(Float64, '/sliding_F_cmd', 10)
+        self.middle_joint_pub = self.create_publisher(Float64, '/sliding_M_cmd', 10)
+        self.back_joint_pub = self.create_publisher(Float64, '/Sliding_B_cmd', 10)
+
+        # State machine
+        self.state = "APPROACHING"
+        self.next_state_after_wait = None
+        self.state_start_time = None
+
+        # Distance thresholds
+        self.climb_distance = 0.15      # Very close to obstacle
+        self.slow_distance = 0.50       # Start slowing down
+        
+        self.current_distance = 999.0
+
+        # Speed settings
+        self.normal_speed = 0.5
+        self.slow_speed = 0.2
+        self.climb_speed = 0.5
+
+        # Joint positions
+        self.extended_position = -0.2   # Extended down
+        self.retracted_position = 0.0   # Retracted (changed from 0.1 to 0.0)
+
+        # Timer for FSM (10 Hz)
+        self.timer = self.create_timer(0.1, self.state_machine)
+
+        # WAIT timer
+        self.wait_timer = None
+
+        self.get_logger().info('🤖 Three-Slider Stair Climber Started!')
+        self.get_logger().info('🎯 Waiting for obstacle...')
+
+    # --------------------------------------------------
+    def sensor_callback(self, msg):
+        """Update current distance from ultrasonic sensor"""
+        d = msg.ranges[0]
+        if d != float('-inf') and d != float('inf'):
+            self.current_distance = d
+        else:
+            self.current_distance = 999.0
+
+    # --------------------------------------------------
+    def state_machine(self):
+        """Main state machine for stair climbing"""
+
+        if self.state == "APPROACHING":
+            # Normal approach with obstacle avoidance
+            if self.current_distance > self.slow_distance:
+                self.move_forward(self.normal_speed)
+                self.get_logger().info(
+                    f'🚗 APPROACHING: {self.current_distance:.2f}m',
+                    throttle_duration_sec=1.0
+                )
+
+            elif self.climb_distance < self.current_distance <= self.slow_distance:
+                self.move_forward(self.slow_speed)
+                self.get_logger().info(
+                    f'⚠️  SLOWING DOWN: {self.current_distance:.2f}m',
+                    throttle_duration_sec=1.0
+                )
+
+            else:
+                # Very close to obstacle - prepare to climb
+                self.stop()
+                self.get_logger().info('🛑 Obstacle reached! Preparing to climb...')
+                
+                self.next_state_after_wait = "LIFTING"
+                self.start_wait_timer(3.0)  # 3 second wait
+                self.state = "WAIT"
+
+        elif self.state == "WAIT":
+            # Stay stopped during wait
+            self.stop()
+
+        elif self.state == "LIFTING":
+            # Extend all three sliders
+            self.stop()  # Don't move while lifting
+            
+            elapsed = time.time() - self.state_start_time
+            
+            # FIXED: Only publish joint commands once per state entry
+            # (moved to wait_timer_callback)
+            
+            self.get_logger().info(
+                f'⬆️  LIFTING ALL SLIDERS: {elapsed:.1f}/2.0s',
+                throttle_duration_sec=0.5
+            )
+
+            if elapsed >= 3.0:  # Wait 2 seconds for all to extend
+                self.get_logger().info('✅ Lift complete! Starting climb...')
+                self.state = "CLIMBING"
+                self.state_start_time = time.time()
+
+        elif self.state == "CLIMBING":
+            # Move forward on lifted wheels
+            self.move_forward(self.climb_speed)
+            elapsed = time.time() - self.state_start_time
+
+            self.get_logger().info(
+                f'🧗 CLIMBING: {elapsed:.1f}/2.0s',
+                throttle_duration_sec=0.5
+            )
+
+            if elapsed >= 2.0:  # FIXED: Changed from 2.0 to match logging
+                self.get_logger().info('⬇️  Retracting FRONT slider...')
+                self.set_front_joint(self.retracted_position)
+                self.state = "LOWER_FRONT"
+                self.state_start_time = time.time()
+
+        elif self.state == "LOWER_FRONT":
+            # Move forward with front retracted
+            self.move_forward(self.climb_speed)
+            elapsed = time.time() - self.state_start_time
+
+            self.get_logger().info(
+                f'⬇️  LOWERING FRONT: {elapsed:.1f}/2.0s',
+                throttle_duration_sec=0.5
+            )
+
+            if elapsed >= 6.0:  # FIXED: Changed from 5.0 to 2.0
+                self.get_logger().info('⬇️  Retracting MIDDLE slider...')
+                self.set_middle_joint(self.retracted_position)
+                self.set_back_joint(self.extended_position)
+                self.state = "LOWER_MIDDLE"
+                self.state_start_time = time.time()
+
+        elif self.state == "LOWER_MIDDLE":
+            # Move forward with front & middle retracted
+            self.move_forward(self.climb_speed)
+            elapsed = time.time() - self.state_start_time
+
+            self.get_logger().info(
+                f'⬇️  LOWERING MIDDLE: {elapsed:.1f}/2.0s',
+                throttle_duration_sec=0.5
+            )
+
+            if elapsed >= 6.0:  # FIXED: Changed from 10.0 to 2.0
+                self.get_logger().info('⬇️  Retracting BACK slider...')
+                self.set_back_joint(self.retracted_position)
+                self.state = "LOWER_BACK"
+                self.state_start_time = time.time()
+
+        elif self.state == "LOWER_BACK":
+            # Move forward with all retracted
+            self.move_forward(self.climb_speed)
+            elapsed = time.time() - self.state_start_time
+
+            self.get_logger().info(
+                f'⬇️  LOWERING BACK: {elapsed:.1f}/2.0s',
+                throttle_duration_sec=0.5
+            )
+
+            if elapsed >= 6.0:  # FIXED: Changed from 4.0 to 2.0
+                self.stop()
+                self.get_logger().info('🎉 CLIMB COMPLETE!')
+                self.state = "DONE"
+
+        elif self.state == "DONE":
+            self.stop()
+            self.get_logger().info('✅ Climbing finished!', throttle_duration_sec=5.0)
+
+    # --------------------------------------------------
+    # WAIT TIMER
+    # --------------------------------------------------
+    def start_wait_timer(self, duration):
+        """Start a one-shot timer for waiting"""
+        if self.wait_timer is not None:
+            self.wait_timer.cancel()
+            
+        self.wait_duration = duration
+        self.wait_timer = self.create_timer(duration, self.wait_timer_callback)
+
+    def wait_timer_callback(self):
+        """Called when wait timer expires"""
+        self.wait_timer.cancel()
+        self.wait_timer = None
+
+        # Transition to next state
+        self.state = self.next_state_after_wait
+        self.state_start_time = time.time()
+
+        # FIXED: Extend sliders when entering LIFTING state
+        if self.state == "LIFTING":
+            self.get_logger().info('🦾 Extending all three sliders...')
+            self.set_front_joint(self.extended_position)
+
+
+    # --------------------------------------------------
+    # MOVEMENT FUNCTIONS
+    # --------------------------------------------------
+    def move_forward(self, speed):
+        """Publish velocity command"""
+        msg = Twist()
+        msg.linear.x = speed
+        self.cmd_vel_pub.publish(msg)
+
+    def stop(self):
+        """Stop robot movement"""
+        self.cmd_vel_pub.publish(Twist())
+
+    # --------------------------------------------------
+    # JOINT CONTROL FUNCTIONS
+    # --------------------------------------------------
+    def set_front_joint(self, position):
+        """Control front slider"""
+        msg = Float64()
+        msg.data = position
+        self.front_joint_pub.publish(msg)
+        self.get_logger().info(f'📤 Front slider → {position:.2f}m')
+
+    def set_middle_joint(self, position):
+        """Control middle slider"""
+        msg = Float64()
+        msg.data = position
+        self.middle_joint_pub.publish(msg)
+        self.get_logger().info(f'📤 Middle slider → {position:.2f}m')
+
+    def set_back_joint(self, position):
+        """Control back slider"""
+        msg = Float64()
+        msg.data = position
+        self.back_joint_pub.publish(msg)
+        self.get_logger().info(f'📤 Back slider → {position:.2f}m')
+
+
+def main():
+    rclpy.init()
+    node = StairClimber()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info('🛑 Shutting down...')
+        node.stop()
+        # Retract all sliders on shutdown
+        node.set_front_joint(0.0)
+        node.set_middle_joint(0.0)
+        node.set_back_joint(0.0)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

@@ -205,7 +205,8 @@ class StairClimber(Node):
         if self.state == "LIFTING":
             self.get_logger().info('🦾 Extending all three sliders...')
             self.set_front_joint(self.extended_position)
-
+            self.set_middle_joint(self.extended_position)
+            self.set_back_joint(self.extended_position)
 
     # --------------------------------------------------
     # MOVEMENT FUNCTIONS
